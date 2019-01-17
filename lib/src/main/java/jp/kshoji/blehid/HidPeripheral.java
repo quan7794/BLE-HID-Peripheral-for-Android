@@ -39,6 +39,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import jp.kshoji.blehid.util.BleUuidUtils;
 
@@ -196,6 +197,8 @@ public abstract class HidPeripheral {
     private BluetoothGattServer gattServer;
     private final Map<String, BluetoothDevice> bluetoothDevicesMap = new HashMap<>();
 
+    private Queue<BluetoothGattService> servicesToAdd = new LinkedBlockingQueue<>();
+
     /**
      * Constructor<br />
      * Before constructing the instance, check the Bluetooth availability.
@@ -239,8 +242,8 @@ public abstract class HidPeripheral {
         }
 
         // setup services
-        addService(setUpHidService(needInputReport, needOutputReport, needFeatureReport));
-        addService(setUpDeviceInformationService());
+        servicesToAdd.add(setUpHidService(needInputReport, needOutputReport, needFeatureReport));
+        servicesToAdd.add(setUpDeviceInformationService());
         addService(setUpBatteryService());
         
         // send report each dataSendingRate, if data available
@@ -270,8 +273,6 @@ public abstract class HidPeripheral {
         }, 0, dataSendingRate);
     }
 
-    private volatile boolean mLastAddServiceCallbackReturned = true;
-
     /**
      * Add GATT service to gattServer
      *
@@ -279,9 +280,6 @@ public abstract class HidPeripheral {
      */
     private void addService(final BluetoothGattService service) {
         assert gattServer != null;
-
-        while(!mLastAddServiceCallbackReturned);
-
         boolean serviceAdded = false;
         while (!serviceAdded) {
             try {
@@ -290,8 +288,6 @@ public abstract class HidPeripheral {
                 Log.d(TAG, "Adding Service failed", e);
             }
         }
-
-        mLastAddServiceCallbackReturned = false;
 
         Log.d(TAG, "Service: " + service.getUuid() + " added.");
     }
@@ -760,7 +756,9 @@ public abstract class HidPeripheral {
                 Log.d(TAG, "onServiceAdded Adding Service failed..");
             }
 
-            mLastAddServiceCallbackReturned = true;
+            if (servicesToAdd.peek() != null) {
+                addService(servicesToAdd.remove());
+            }
         }
     };
 
