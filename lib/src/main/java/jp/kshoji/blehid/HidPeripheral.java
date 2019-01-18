@@ -40,6 +40,7 @@ import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
 
 import jp.kshoji.blehid.util.BleUuidUtils;
 
@@ -198,6 +199,29 @@ public abstract class HidPeripheral {
     private final Map<String, BluetoothDevice> bluetoothDevicesMap = new HashMap<>();
 
     private Queue<BluetoothGattService> servicesToAdd = new LinkedBlockingQueue<>();
+
+    public class ConnectionState {
+        public BluetoothDevice device;
+        public int status;
+        public int newState;
+
+        public ConnectionState(BluetoothDevice device, int status, int newState) {
+            this.device = device;
+            this.status = status;
+            this.newState = newState;
+        }
+    }
+
+    public void setConnectionStateCallback(Consumer<ConnectionState> connectionStateCallback) {
+        this.connectionStateCallback = connectionStateCallback;
+    }
+
+    private Consumer<ConnectionState> connectionStateCallback = new Consumer<ConnectionState>() {
+        @Override
+        public void accept(ConnectionState connectionState) {
+            // do nothing
+        }
+    };
 
     /**
      * Constructor<br />
@@ -600,6 +624,8 @@ public abstract class HidPeripheral {
                             bluetoothDevicesMap.put(device.getAddress(), device);
                         }
                     }
+
+                    connectionStateCallback.accept(new ConnectionState(device, status, newState));
                     break;
 
                 case BluetoothProfile.STATE_DISCONNECTED:
@@ -619,6 +645,7 @@ public abstract class HidPeripheral {
                     synchronized (bluetoothDevicesMap) {
                         bluetoothDevicesMap.remove(deviceAddress);
                     }
+                    connectionStateCallback.accept(new ConnectionState(device, status, newState));
                     break;
 
                 default:
