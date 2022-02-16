@@ -26,7 +26,6 @@ import android.os.ParcelUuid;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import android.util.Log;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -194,7 +193,6 @@ public abstract class HidPeripheral {
     private final Handler handler;
     private final BluetoothLeAdvertiser bluetoothLeAdvertiser;
     private BluetoothGattCharacteristic inputReportCharacteristic;
-    @Nullable
     private BluetoothGattServer gattServer;
     private final Map<String, BluetoothDevice> bluetoothDevicesMap = new HashMap<>();
 
